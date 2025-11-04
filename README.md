@@ -3,3 +3,4 @@
 ## Examples
 
 - [hello world](./hello_world/README.md)
+- [hello fmt](./hello_fmt/README.md)

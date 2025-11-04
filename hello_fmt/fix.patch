@@ -1,0 +1,13 @@
+diff --git BUILD.bazel BUILD.bazel
+index 081b47b..e9409cb 100644
+--- BUILD.bazel
++++ BUILD.bazel
+@@ -30,6 +30,8 @@ cc_library(
+         "//conditions:default": [],
+     }),
+     includes = ["include"],
++    local_defines = ["FMT_ATTACH_TO_GLOBAL_MODULE"],
++    module_interfaces = ["src/fmt.cc"],
+     strip_include_prefix = "include",  # workaround: only needed on some macOS systems (see https://github.com/bazelbuild/bazel-central-registry/issues/1537)
+     visibility = ["//visibility:public"],
+ )
