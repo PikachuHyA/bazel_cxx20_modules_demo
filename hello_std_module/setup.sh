@@ -1,0 +1,1 @@
+apt install curl git clang-20 libc++-20-dev libc++abi-20-dev liblld-20-dev

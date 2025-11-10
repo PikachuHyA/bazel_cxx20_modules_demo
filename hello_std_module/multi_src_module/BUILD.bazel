@@ -1,0 +1,34 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+cc_library(
+    name = "spanish_english_dictionary",
+    srcs = [
+        "spanish_english_dictionary_impl.cc",
+    ],
+    features = ["cpp_modules"],
+    module_interfaces = ["spanish_english_dictionary.cppm"],
+    deps = ["@local_config_cc//:std_modules"],
+)
+
+cc_library(
+    name = "speech",
+    srcs = [
+        "speech_impl.cc",
+    ],
+    features = ["cpp_modules"],
+    module_interfaces = ["speech.cppm"],
+    deps = [
+        ":spanish_english_dictionary",
+    ],
+)
+
+cc_binary(
+    name = "multi_src_demo",
+    srcs = [
+        "main.cc",
+    ],
+    features = ["cpp_modules"],
+    deps = [
+        ":speech",
+    ],
+)

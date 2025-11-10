@@ -1,0 +1,21 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+cc_library(
+    name = "a",
+    srcs = ["a.cc"],
+    module_interfaces = ["a.cppm"],
+    deps = ["@local_config_cc//:std_modules"],
+)
+
+cc_binary(
+    name = "module_library",
+    srcs = [
+        "b.cc",
+        "b.h",
+        "main.cc",
+    ],
+    features = ["cpp_modules"],
+    deps = [
+        ":a",
+    ],
+)

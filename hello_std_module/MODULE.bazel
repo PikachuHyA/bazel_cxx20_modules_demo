@@ -1,0 +1,10 @@
+module(name = "demo")
+bazel_dep(name = "rules_cc")
+
+git_override(
+    module_name = "rules_cc",
+    remote = "https://github.com/PikachuHyA/rules_cc.git",
+    branch = "support_std_module",
+)
+cc_configure = use_extension("@rules_cc//cc:extensions.bzl", "cc_configure_extension")
+use_repo(cc_configure, "local_config_cc")

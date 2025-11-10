@@ -1,0 +1,14 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_binary(
+    name = "example",
+    srcs = ["main.cc"],
+    # Fix fatal error: cannot open file '/proc/self/cwd/template-module/algorithm.cppm': No such file or directory
+    copts = [
+        "-Xclang",
+        "-fmodules-embed-all-files",
+    ],
+    features = ["cpp_modules"],
+    module_interfaces = ["algorithm.cppm"],
+    deps = ["@local_config_cc//:std_modules"],
+)

@@ -1,0 +1,9 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_binary(
+    name = "hello",
+    srcs = ["main.cc"],
+    features = ["cpp_modules"],
+    module_interfaces = ["hello.cppm"],
+    deps = ["@local_config_cc//:std_modules"],
+)

@@ -1,0 +1,26 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+cc_library(
+    name = "a",
+    features = ["cpp_modules"],
+    module_interfaces = ["a.cppm"],
+    deps = [":b"],
+)
+
+cc_library(
+    name = "b",
+    features = ["cpp_modules"],
+    module_interfaces = ["b.cppm"],
+    deps = ["@local_config_cc//:std_modules"],
+)
+
+cc_binary(
+    name = "trans",
+    srcs = [
+        "main.cc",
+    ],
+    features = ["cpp_modules"],
+    deps = [
+        ":a",
+    ],
+)
