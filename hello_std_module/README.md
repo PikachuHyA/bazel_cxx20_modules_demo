@@ -38,9 +38,9 @@ Selected multilib: .;@m64
 
 ## Get Bazel
 
-This feature is not yet in an official release. For temporary testing you can use a provided test build:
+This feature is not yet in an official release. [bazel-9.0.0rc2](https://github.com/bazelbuild/bazel/releases/tag/9.0.0rc2) includes support for it.
 ```bash
-wget https://github.com/PikachuHyA/bazel/releases/download/cxx20-modules-support-v20251104/bazel
+wget -O bazel https://github.com/bazelbuild/bazel/releases/download/9.0.0rc2/bazel-9.0.0rc2-linux-x86_64
 chmod +x bazel
 ```
 

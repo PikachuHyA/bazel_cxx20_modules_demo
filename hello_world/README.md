@@ -36,9 +36,9 @@ Selected multilib: .;@m64
 ```
 
 Get Bazel
-This feature is not yet in an official release. For temporary testing you can use a provided test build:
+This feature is not yet in an official release. [bazel-9.0.0rc2](https://github.com/bazelbuild/bazel/releases/tag/9.0.0rc2) includes support for it.
 ```bash
-wget https://github.com/PikachuHyA/bazel/releases/download/cxx20-modules-support-v20251104/bazel
+wget -O bazel https://github.com/bazelbuild/bazel/releases/download/9.0.0rc2/bazel-9.0.0rc2-linux-x86_64
 chmod +x bazel
 ```
 
@@ -101,19 +101,12 @@ cc_binary(
 ```
 
 MODULE.bazel
-Because a specific `rules_cc` version is required, override it manually:
+`rules_cc` version 0.2.14 or later is required.
 ```python
 module(name = "demo")
 
-bazel_dep(name = "rules_cc")
-git_override(
-    module_name = "rules_cc",
-    remote = "https://github.com/bazelbuild/rules_cc.git",
-    commit = "a8f6a9241380a726a9131dc4d2ecc3543d7d6fb8",
-)
+bazel_dep(name = "rules_cc", version = "0.2.14")
 ```
-
-Note: remove this override once `rules_cc` is updated upstream.
 
 Build and run
 Build with explicit Clang and experimental modules enabled:

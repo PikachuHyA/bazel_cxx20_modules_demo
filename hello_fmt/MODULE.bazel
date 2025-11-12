@@ -1,11 +1,7 @@
 module(name = "demo")
+bazel_dep(name = "rules_cc", version = "0.2.14")
 bazel_dep(name = "fmt", version = "12.1.0")
-bazel_dep(name = "rules_cc")
-git_override(
-    module_name = "rules_cc",
-    remote = "https://github.com/bazelbuild/rules_cc.git",
-    commit = "a8f6a9241380a726a9131dc4d2ecc3543d7d6fb8",
-)
+
 single_version_override(
     module_name = "fmt",
     version = "12.1.0",
