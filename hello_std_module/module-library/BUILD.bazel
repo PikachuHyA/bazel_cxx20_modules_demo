@@ -2,9 +2,10 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
     name = "a",
-    srcs = ["a.cc"],
+    #srcs = ["a.cc"],
     module_interfaces = ["a.cppm"],
     deps = ["@local_config_cc//:std_modules"],
+    features = ["cpp_modules"],
 )
 
 cc_binary(
