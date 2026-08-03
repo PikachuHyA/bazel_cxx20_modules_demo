@@ -1,0 +1,179 @@
+# CI for the three C++20 modules demos.
+#   - hello_world:        Windows + MSVC, `import std;` via the forked rules_cc
+#   - hello_fmt:          Windows + MSVC, `import fmt;` (module support via fix.patch)
+#   - hello_std_module:   Ubuntu + Clang 20, `import std;` with libc++
+name: ci
+
+on:
+  push:
+    branches: [main, ci]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  hello_world:
+    name: hello_world (MSVC)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: hello_world
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bazelbuild/setup-bazelisk@v3
+        with:
+          bazel-version: 9.2.0
+
+      # C:/b keeps the bazel output base on a short path, avoiding MSVC
+      # long-path (MAX_PATH) issues with the module repo names in the
+      # execroot. Flags are passed explicitly so the CI does not depend on
+      # whether .bazelrc is committed.
+      - name: Build demo
+        shell: bash
+        run: |
+          set -o pipefail
+          bazel --output_user_root=C:/b build //:demo \
+            --experimental_cpp_modules \
+            --features=cpp_modules \
+            2>&1 | tee build.log
+
+      - name: Verify no MSVC CRT mismatch (C5050 / LNK4098)
+        shell: bash
+        run: |
+          if grep -E "C5050|LNK4098" build.log; then
+            echo "::error::Found C5050/LNK4098 warnings: the MSVC runtime library flags of module units differ from the importing TUs"
+            exit 1
+          fi
+          echo "No CRT mismatch warnings."
+
+      - name: Run demo
+        shell: bash
+        run: bazel --output_user_root=C:/b run //:demo
+
+  hello_fmt:
+    name: hello_fmt (MSVC)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: hello_fmt
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bazelbuild/setup-bazelisk@v3
+        with:
+          bazel-version: 9.2.0
+
+      - name: Build demo
+        shell: bash
+        run: |
+          set -o pipefail
+          bazel --output_user_root=C:/b build //:demo \
+            --experimental_cpp_modules \
+            --features=cpp_modules \
+            2>&1 | tee build.log
+
+      - name: Verify no MSVC CRT mismatch (C5050 / LNK4098)
+        shell: bash
+        run: |
+          if grep -E "C5050|LNK4098" build.log; then
+            echo "::error::Found C5050/LNK4098 warnings: the MSVC runtime library flags of module units differ from the importing TUs"
+            exit 1
+          fi
+          echo "No CRT mismatch warnings."
+
+      - name: Run demo
+        shell: bash
+        run: bazel --output_user_root=C:/b run //:demo
+
+  hello_std_module_libcxx:
+    name: hello_std_module (Clang 20 + libc++)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: hello_std_module
+    steps:
+      - uses: actions/checkout@v4
+
+      # clang-20 is not in the Ubuntu 24.04 archives; install via the LLVM apt repo.
+      - name: Install clang-20 and libc++
+        run: |
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20
+          sudo apt-get install -y libc++-20-dev libc++abi-20-dev liblld-20-dev
+
+      # llvm.sh installs versioned binaries (clang-20, clang-scan-deps-20).
+      # Register them with update-alternatives so the unversioned names the
+      # rules_cc toolchain probes for (/usr/bin/clang-scan-deps is baked
+      # into deps_scanner_wrapper.sh) resolve to clang-20. Priority 100
+      # outranks any clang-18/19 that ships with the runner image.
+      - name: Make clang-20 the default tools
+        run: |
+          for tool in clang clang++ clang-scan-deps; do
+            sudo update-alternatives --install /usr/bin/$tool $tool /usr/bin/$tool-20 100
+          done
+
+      - uses: bazelbuild/setup-bazelisk@v3
+        with:
+          bazel-version: 9.2.0
+
+      # CC comes from hello_std_module/.bazelrc (--repo_env=CC=clang++-20);
+      # libc++ flags follow build.sh.
+      - name: Build all targets
+        shell: bash
+        run: |
+          BAZEL_LINKOPTS=-stdlib=libc++ BAZEL_CXXOPTS=-stdlib=libc++ \
+          bazel build //... --cxxopt=-std=c++23 --features=cpp_modules
+
+      - name: Run demos
+        shell: bash
+        run: |
+          for target in basic:demo hello-world:hello module-library:module_library \
+                        multi_src_module:multi_src_demo template-module:example transitive:trans; do
+            BAZEL_LINKOPTS=-stdlib=libc++ BAZEL_CXXOPTS=-stdlib=libc++ \
+            bazel run //$target --cxxopt=-std=c++23 --features=cpp_modules
+          done
+
+  hello_std_module_libstdcxx:
+    name: hello_std_module (Clang 20 + libstdc++)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: hello_std_module
+    steps:
+      - uses: actions/checkout@v4
+
+      # clang-20 is not in the Ubuntu 24.04 archives; install via the LLVM apt repo.
+      - name: Install clang-20
+        run: |
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20
+
+      # llvm.sh installs versioned binaries (clang-20, clang-scan-deps-20).
+      # Register them with update-alternatives so the unversioned names the
+      # rules_cc toolchain probes for resolve to clang-20.
+      - name: Make clang-20 the default tools
+        run: |
+          for tool in clang clang++ clang-scan-deps; do
+            sudo update-alternatives --install /usr/bin/$tool $tool /usr/bin/$tool-20 100
+          done
+
+      - uses: bazelbuild/setup-bazelisk@v3
+        with:
+          bazel-version: 9.2.0
+
+      # CC comes from hello_std_module/.bazelrc (--repo_env=CC=clang++-20);
+      # no -stdlib=libc++ here, so the default libstdc++ is used.
+      - name: Build all targets
+        shell: bash
+        run: |
+          bazel build //... --cxxopt=-std=c++23 --features=cpp_modules
+
+      - name: Run demos
+        shell: bash
+        run: |
+          for target in basic:demo hello-world:hello module-library:module_library \
+                        multi_src_module:multi_src_demo template-module:example transitive:trans; do
+            bazel run //$target --cxxopt=-std=c++23 --features=cpp_modules
+          done
