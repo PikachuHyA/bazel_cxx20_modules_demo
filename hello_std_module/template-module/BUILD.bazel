@@ -10,5 +10,5 @@ cc_binary(
     ],
     features = ["cpp_modules"],
     module_interfaces = ["algorithm.cppm"],
-    deps = ["@local_config_cc//:std_modules"],
+    deps = ["@local_config_cc//:std"],
 )

@@ -1,2 +1,4 @@
 common --incompatible_strict_action_env
 build --repo_env=CC=clang++-20
+build --features=cpp_modules
+common --experimental_cpp_modules
