@@ -85,8 +85,8 @@ jobs:
         shell: bash
         run: bazel --output_user_root=C:/b run //:demo
 
-  hello_std_module:
-    name: hello_std_module (Clang)
+  hello_std_module_libcxx:
+    name: hello_std_module (Clang 20 + libc++)
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -123,7 +123,7 @@ jobs:
         shell: bash
         run: |
           BAZEL_LINKOPTS=-stdlib=libc++ BAZEL_CXXOPTS=-stdlib=libc++ \
-          bazel build //... --cxxopt=-std=c++23 --experimental_cpp_modules --features=cpp_modules
+          bazel build //... --cxxopt=-std=c++23 --features=cpp_modules
 
       - name: Run demos
         shell: bash
@@ -131,5 +131,49 @@ jobs:
           for target in basic:demo hello-world:hello module-library:module_library \
                         multi_src_module:multi_src_demo template-module:example transitive:trans; do
             BAZEL_LINKOPTS=-stdlib=libc++ BAZEL_CXXOPTS=-stdlib=libc++ \
+            bazel run //$target --cxxopt=-std=c++23 --features=cpp_modules
+          done
+
+  hello_std_module_libstdcxx:
+    name: hello_std_module (Clang 20 + libstdc++)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: hello_std_module
+    steps:
+      - uses: actions/checkout@v4
+
+      # clang-20 is not in the Ubuntu 24.04 archives; install via the LLVM apt repo.
+      - name: Install clang-20
+        run: |
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20
+
+      # llvm.sh installs versioned binaries (clang-20, clang-scan-deps-20).
+      # Register them with update-alternatives so the unversioned names the
+      # rules_cc toolchain probes for resolve to clang-20.
+      - name: Make clang-20 the default tools
+        run: |
+          for tool in clang clang++ clang-scan-deps; do
+            sudo update-alternatives --install /usr/bin/$tool $tool /usr/bin/$tool-20 100
+          done
+
+      - uses: bazelbuild/setup-bazelisk@v3
+        with:
+          bazel-version: 9.2.0
+
+      # CC comes from hello_std_module/.bazelrc (--repo_env=CC=clang++-20);
+      # no -stdlib=libc++ here, so the default libstdc++ is used.
+      - name: Build all targets
+        shell: bash
+        run: |
+          bazel build //... --cxxopt=-std=c++23 --features=cpp_modules
+
+      - name: Run demos
+        shell: bash
+        run: |
+          for target in basic:demo hello-world:hello module-library:module_library \
+                        multi_src_module:multi_src_demo template-module:example transitive:trans; do
             bazel run //$target --cxxopt=-std=c++23 --features=cpp_modules
           done
