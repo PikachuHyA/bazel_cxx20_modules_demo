@@ -4,7 +4,7 @@ cc_library(
     name = "a",
     srcs = ["a.cc"],
     module_interfaces = ["a.cppm"],
-    deps = ["@local_config_cc//:std_modules"],
+    deps = ["@local_config_cc//:std"],
 )
 
 cc_binary(

@@ -5,5 +5,5 @@ cc_binary(
     srcs = ["main.cc"],
     features = ["cpp_modules"],
     module_interfaces = ["hello.cppm"],
-    deps = ["@local_config_cc//:std_modules"],
+    deps = ["@local_config_cc//:std"],
 )
