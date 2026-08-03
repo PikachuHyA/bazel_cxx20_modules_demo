@@ -1,0 +1,5 @@
+common --incompatible_strict_action_env
+common --enable_platform_specific_config
+common --experimental_cpp_modules
+common:windows  --copt /std:c++20
+common:windows  --action_env=VSLANG=1033
