@@ -32,8 +32,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          bazel build //:demo \
-            --output_user_root=C:/b \
+          bazel --output_user_root=C:/b build //:demo \
             --experimental_cpp_modules \
             --features=cpp_modules \
             2>&1 | tee build.log
@@ -49,7 +48,7 @@ jobs:
 
       - name: Run demo
         shell: bash
-        run: bazel run //:demo
+        run: bazel --output_user_root=C:/b run //:demo
 
   hello_fmt:
     name: hello_fmt (MSVC)
@@ -68,8 +67,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          bazel build //:demo \
-            --output_user_root=C:/b \
+          bazel --output_user_root=C:/b build //:demo \
             --experimental_cpp_modules \
             --features=cpp_modules \
             2>&1 | tee build.log
@@ -85,7 +83,7 @@ jobs:
 
       - name: Run demo
         shell: bash
-        run: bazel run //:demo
+        run: bazel --output_user_root=C:/b run //:demo
 
   hello_std_module:
     name: hello_std_module (Clang)
@@ -114,12 +112,13 @@ jobs:
         shell: bash
         run: |
           BAZEL_LINKOPTS=-stdlib=libc++ BAZEL_CXXOPTS=-stdlib=libc++ \
-          bazel build //... --cxxopt=-std=c++23 --experimental_cpp_modules
+          bazel build //... --cxxopt=-std=c++23 --experimental_cpp_modules --features=cpp_modules
 
       - name: Run demos
         shell: bash
         run: |
           for target in basic:demo hello-world:hello module-library:module_library \
                         multi_src_module:multi_src_demo template-module:example transitive:trans; do
-            bazel run //$target --cxxopt=-std=c++23
+            BAZEL_LINKOPTS=-stdlib=libc++ BAZEL_CXXOPTS=-stdlib=libc++ \
+            bazel run //$target --cxxopt=-std=c++23 --features=cpp_modules
           done
