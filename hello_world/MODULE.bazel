@@ -5,7 +5,7 @@ bazel_dep(name = "rules_cc", version = "0.2.22")
 git_override(
     module_name = "rules_cc",
     remote = "https://github.com/PikachuHyA/rules_cc.git",
-    commit = "9e09a30d65462420c22fac51fc8c3b861cc04f71"
+    commit = "9cef3738f2deb31aa1bbc4840d2554e01b7d84d2"
 )
 
 #local_path_override(
