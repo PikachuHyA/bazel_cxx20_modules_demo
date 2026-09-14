@@ -11,7 +11,6 @@ cc_library(
     name = "b",
     features = ["cpp_modules"],
     module_interfaces = ["b.cppm"],
-    deps = ["@local_config_cc//:std"],
 )
 
 cc_binary(

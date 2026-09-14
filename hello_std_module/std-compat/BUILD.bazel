@@ -1,0 +1,12 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+# std_module_compat injects @local_config_cc//:std_compat automatically.
+# No explicit std-module dependency is needed here.
+cc_binary(
+    name = "demo",
+    srcs = ["main.cc"],
+    features = [
+        "cpp_modules",
+        "std_module_compat",
+    ],
+)
