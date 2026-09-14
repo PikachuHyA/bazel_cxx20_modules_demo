@@ -1,172 +1,79 @@
-# Bazel with C++20 Modules: Using Standard Library Modules
+# Bazel with C++ Modules and the Standard Library
 
-This document shows how to use C++23 standard library modules (`import std;`) with Bazel and Clang.
+This repository exercises C++23 standard-library modules with Bazel, Clang, and
+the `rules_cc` standard-module support branch.
 
 ## Environment
 
-- OS: Ubuntu 24.04.1 LTS
-- Compiler: Clang 19+ (for C++23 `import std;` support)
-- Bazel: requires a version including commit [60b1e19...](https://github.com/bazelbuild/bazel/commit/60b1e19baa4df5148bdc0a5ec8edb4cb6671fcc1) or later
+- Ubuntu 26.04
+- Clang 20 or newer, libc++ and libc++abi development packages
+- A Bazel version containing [60b1e19](https://github.com/bazelbuild/bazel/commit/60b1e19baa4df5148bdc0a5ec8edb4cb6671fcc1) or later
 
-Verify system info:
-```bash
-$ cat /etc/lsb-release
-DISTRIB_ID=Ubuntu
-DISTRIB_RELEASE=24.04
-DISTRIB_CODENAME=noble
-DISTRIB_DESCRIPTION="Ubuntu 24.04.1 LTS"
+Install the dependencies:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y curl git clang libc++-dev libc++abi-dev lld
 ```
 
-Install dependencies:
-```bash
-sudo apt update
-sudo apt install curl git clang-20 libc++-20-dev libc++abi-20-dev liblld-20-dev
-```
+## rules_cc dependency
 
-Verify Clang:
-```bash
-$ clang-20 -v
-Ubuntu clang version 20.1.2 (0ubuntu1~24.04.2)
-Target: x86_64-pc-linux-gnu
-Thread model: posix
-InstalledDir: /usr/lib/llvm-20/bin
-Found candidate GCC installation: /usr/lib/gcc/x86_64-linux-gnu/13
-Selected GCC installation: /usr/lib/gcc/x86_64-linux-gnu/13
-Candidate multilib: .;@m64
-Selected multilib: .;@m64
-```
-
-## Get Bazel
-
-This feature is not yet in an official release. [bazel-9.0.0rc2](https://github.com/bazelbuild/bazel/releases/tag/9.0.0rc2) includes support for it.
-```bash
-wget -O bazel https://github.com/bazelbuild/bazel/releases/download/9.0.0rc2/bazel-9.0.0rc2-linux-x86_64
-chmod +x bazel
-```
-
-Verify Bazel:
-```bash
-$ ./bazel --version
-```
-
-Tip: switch to the official Bazel release once it contains Modules support.
-
-## MODULE.bazel
-
-Because a specific `rules_cc` version is required, override it manually:
-```python
+```starlark
 module(name = "demo")
-bazel_dep(name = "rules_cc")
 
+bazel_dep(name = "rules_cc", version = "0.2.22")
 git_override(
     module_name = "rules_cc",
     remote = "https://github.com/PikachuHyA/rules_cc.git",
     branch = "support_std_module",
 )
-cc_configure = use_extension("@rules_cc//cc:extensions.bzl", "cc_configure_extension")
-use_repo(cc_configure, "local_config_cc")
 ```
 
-After that, you can use `@local_config_cc//:std_modules` as a dependency to enable standard library modules in your targets.
-
-Note: remove this override once `rules_cc` is updated upstream.
+The repository enables `cpp_modules`, `std_module`, and standard-module
+detection in `.bazelrc`. `std_module` injects `@local_config_cc//:std` into
+`cc_library` and `cc_binary`; that target supplies both `std` and `std.compat`.
+No standard-module dependency needs to be listed manually.
 
 ## Examples
 
-This directory contains several examples demonstrating different aspects of using standard library modules with Bazel.
+- `basic`: direct `import std;`.
+- `std-compat`: direct `import std.compat;`; it uses the same `std_module`
+  feature as `import std;`.
+- `hello-world`, `transitive`, `template-module`, and `multi_src_module`:
+  module interfaces, transitive imports, templates, and implementation units.
+- `module-library`: C++ modules together with traditional headers and sources.
+- `custom-std`: overrides `@rules_cc//cc:std_module` with an independent
+  `my_std` module. It does not depend on `@local_config_cc`; the
+  `no_implicit_std_module` tag prevents a dependency cycle.
+- `fallback`: ordinary C++ code that verifies the empty `:std` fallback target
+  when automatic detection is disabled. It deliberately does not import `std`.
 
-### 1. Basic Example
+## Build
 
-The simplest example using `import std;` directly.
+Build every example against libc++:
 
-**Files:**
-- `basic/main.cc`: Uses `import std;` and `std::println`
-
-**BUILD.bazel:**
-```python
-load("@rules_cc//cc:defs.bzl", "cc_binary")
-
-cc_binary(
-    name = "demo",
-    srcs = ["main.cc"],
-    features = ["cpp_modules"],
-    deps = ["@local_config_cc//:std"],
-)
+```sh
+bazel build --config=libcxx //...
 ```
 
-### 2. Hello World Module
+Build against libstdc++ when the compiler provides `libstdc++.modules.json`:
 
-A module that uses `import std;` and is imported by the main program.
-
-**Files:**
-- `hello-world/hello.cppm`: Module interface that imports std
-- `hello-world/main.cc`: Imports both hello module and std
-
-### 3. Transitive Dependencies
-
-Demonstrates how std module dependencies propagate through module chains.
-
-**Files:**
-- `transitive/b.cppm`: Module that imports and re-exports std
-- `transitive/a.cppm`: Module that imports b (and transitively gets std)
-- `transitive/main.cc`: Uses module a
-
-### 4. Template Module
-
-Shows how to use std module with template code.
-
-**Files:**
-- `template-module/algorithm.cppm`: Template module using std algorithms
-- `template-module/main.cc`: Uses the algorithm module
-
-### 5. Multi-Source Module
-
-Demonstrates modules with separate interface and implementation files.
-
-**Files:**
-- `multi_src_module/spanish_english_dictionary.cppm`: Module interface
-- `multi_src_module/spanish_english_dictionary_impl.cc`: Module implementation
-- `multi_src_module/speech.cppm`: Another module interface
-- `multi_src_module/speech_impl.cc`: Another module implementation
-- `multi_src_module/main.cc`: Uses speech module
-
-### 6. Module Library
-
-Shows mixing modules with traditional header files.
-
-**Files:**
-- `module-library/a.cppm`: A module
-- `module-library/b.cc`, `module-library/b.h`: Traditional header/source
-- `module-library/main.cc`: Uses both module and headers, plus `import std;`
-
-## Build and Run
-
-Build all examples:
-```bash
-$ BAZEL_LINKOPTS=-stdlib=libc++ BAZEL_CXXOPTS=-stdlib=libc++ bazel build ... --cxxopt -std=c++23 -s --experimental_cpp_modules
+```sh
+bazel build --config=libstdcxx //...
 ```
 
-Or use the provided build script:
-```bash
-$ ./build.sh
+Verify a custom standard-module target:
+
+```sh
+bazel build --config=libcxx --config=custom_std_module //custom-std:demo
 ```
 
-## Key Points
+Verify the no-manifest fallback target:
 
-- Use `--repo_env=CC=clang-20` (or clang-19) to select a Clang version that supports C++23 standard library modules.
-- Add `--cxxopt=-std=c++23` to enable C++23.
-- Add `BAZEL_LINKOPTS=-stdlib=libc++` and `BAZEL_CXXOPTS=-stdlib=libc++` to use libc++ (required for std modules).
-- Add `--experimental_cpp_modules` to enable C++20 Modules support in Bazel.
-- Add `@local_config_cc//:std_modules` as a dependency to targets that use `import std;`.
-- Add `cpp_modules` to the `features` list in BUILD targets.
-- Use `module_interfaces` attribute for module interface files (`.cppm`).
+```sh
+bazel build --config=no_std_detection //fallback:demo
+```
 
-## Known Issues
-
-- If you encounter `fatal error: cannot open file '/proc/self/cwd/xxx.cppm': No such file or directory`, add the following to `copts` in your BUILD file:
-  ```python
-  copts = [
-      "-Xclang",
-      "-fmodules-embed-all-files",
-  ],
-  ```
+`BAZEL_DETECT_STD_MODULE=1` controls auto-detection at `local_config_cc`
+configuration time. It is set in `.bazelrc`; changing it requires a repository
+reconfiguration, for example `bazel sync`.

@@ -3,7 +3,6 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 cc_library(
     name = "a",
     module_interfaces = ["a.cppm"],
-    deps = ["@local_config_cc//:std"],
 )
 
 cc_binary(

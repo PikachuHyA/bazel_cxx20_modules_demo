@@ -1,0 +1,20 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+# A module target supplied by a custom toolchain or project. The tag prevents
+# std_module from injecting this target into itself.
+cc_library(
+    name = "std",
+    module_interfaces = ["my_std.cppm"],
+    features = ["cpp_modules"],
+    tags = ["no_implicit_std_module"],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "demo",
+    srcs = ["main.cc"],
+    features = [
+        "cpp_modules",
+        "std_module",
+    ],
+)
