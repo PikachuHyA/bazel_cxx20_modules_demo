@@ -1,0 +1,28 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+
+cc_library(
+  name = "lib",
+  hdrs = ["lib.h"],
+  srcs = ["lib.cc"],
+)
+
+cc_test(
+  name = "test_no_module",
+  srcs = ["test.cc"],
+  deps = [":lib"]
+)
+
+cc_library(
+  name = "lib2",
+  module_interfaces = ["lib.cppm"],
+  features = ["cpp_modules"],
+)
+
+cc_test(
+  name = "test_with_module",
+  srcs = ["test.cc"],
+  copts = ["-DUSE_MODULE"],
+  deps = [":lib2"],
+  features = ["cpp_modules"],
+)

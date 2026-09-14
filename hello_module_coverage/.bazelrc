@@ -1,0 +1,14 @@
+common --incompatible_strict_action_env
+common --enable_platform_specific_config
+common --experimental_cpp_modules
+common:linux --repo_env=CC=clang
+common:linux --repo_env=BAZEL_CXXOPTS=-std=c++20
+common:windows  --copt /std:c++20
+common:windows  --action_env=VSLANG=1033
+coverage --instrument_test_targets
+coverage --experimental_use_llvm_covmap
+coverage --experimental_generate_llvm_lcov
+coverage --repo_env=BAZEL_USE_LLVM_NATIVE_COVERAGE=1
+coverage --repo_env=BAZEL_LLVM_COV=llvm-cov
+coverage --repo_env=BAZEL_LLVM_PROFDATA=llvm-profdata
+common --copt -Xclang --copt -fmodules-embed-all-files

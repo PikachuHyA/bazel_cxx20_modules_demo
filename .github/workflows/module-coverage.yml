@@ -1,0 +1,129 @@
+name: C++20 modules coverage repro
+
+on:
+  push:
+    branches: [main, ci]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bazel_9_2_0:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+        working-directory: hello_module_coverage
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang and LLVM coverage tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang clang-tools llvm
+          for tool in clang clang++ clang-scan-deps llvm-cov llvm-profdata; do
+            if ! command -v "$tool" >/dev/null; then
+              candidate="$(find /usr/lib/llvm-*/bin /usr/bin -type f -name "$tool*" 2>/dev/null | sort -V | tail -n 1)"
+              test -n "$candidate"
+              sudo ln -sf "$candidate" "/usr/bin/$tool"
+            fi
+            command -v "$tool"
+          done
+
+      - name: Check the runner's Clang and LLVM coverage tools
+        run: |
+          clang --version
+          clang-scan-deps --version
+          llvm-cov --version
+          llvm-profdata --version
+
+      - uses: bazelbuild/setup-bazelisk@v3
+        with:
+          bazel-version: 9.2.0
+
+      - name: Coverage without C++ modules
+        run: |
+          bazel coverage :test_no_module --nocache_test_results
+          echo '--- _coverage_report.dat (without modules) ---'
+          cat bazel-out/_coverage/_coverage_report.dat
+          echo '--- _baseline_report.dat (without modules) ---'
+          cat bazel-out/_coverage/_baseline_report.dat
+
+      - name: Show missing module coverage on Bazel 9.2.0
+        run: |
+          bazel coverage :test_with_module --nocache_test_results
+          echo '--- _coverage_report.dat (Bazel 9.2.0) ---'
+          cat bazel-out/_coverage/_coverage_report.dat
+          echo '--- _baseline_report.dat (Bazel 9.2.0) ---'
+          cat bazel-out/_coverage/_baseline_report.dat
+          if grep -Fq 'SF:lib.cppm' bazel-out/_coverage/_coverage_report.dat; then
+            echo 'Unexpectedly found module interface coverage in Bazel 9.2.0.' >&2
+            exit 1
+          fi
+          echo 'Confirmed: lib.cppm is absent from the Bazel 9.2.0 coverage report.'
+
+  patched_bazel:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+        working-directory: hello_module_coverage
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang and LLVM coverage tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang clang-tools llvm
+          for tool in clang clang++ clang-scan-deps llvm-cov llvm-profdata; do
+            if ! command -v "$tool" >/dev/null; then
+              candidate="$(find /usr/lib/llvm-*/bin /usr/bin -type f -name "$tool*" 2>/dev/null | sort -V | tail -n 1)"
+              test -n "$candidate"
+              sudo ln -sf "$candidate" "/usr/bin/$tool"
+            fi
+            command -v "$tool"
+          done
+
+      - name: Check the runner's Clang and LLVM coverage tools
+        run: |
+          clang --version
+          clang-scan-deps --version
+          llvm-cov --version
+          llvm-profdata --version
+
+      - name: Download the Bazel build with module coverage support
+        run: |
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/bazel" \
+            https://github.com/PikachuHyA/bazel/releases/download/prebuilt_support_module_interfaces_coverage/bazel
+          printf '%s  %s\n' \
+            de1855aa17d1541e082b02ca2bc4e43f870399520757efbd63bc2103931af491 \
+            "$RUNNER_TEMP/bazel" | sha256sum --check --strict
+          chmod +x "$RUNNER_TEMP/bazel"
+          "$RUNNER_TEMP/bazel" version
+
+      - name: Use the rules_cc patch for module interface coverage
+        run: |
+          cp MODULE.bazel.fixed MODULE.bazel
+
+      - name: Run module coverage with the patched Bazel and rules_cc
+        run: |
+          "$RUNNER_TEMP/bazel" coverage :test_with_module --nocache_test_results
+
+      - name: Show patched coverage report
+        run: |
+          echo '--- _coverage_report.dat (patched Bazel and rules_cc) ---'
+          cat bazel-out/_coverage/_coverage_report.dat
+
+      - name: Show patched baseline report
+        run: |
+          echo '--- _baseline_report.dat (patched Bazel and rules_cc) ---'
+          cat bazel-out/_coverage/_baseline_report.dat
+
+      - name: Verify the module interface is in the coverage report
+        run: |
+          grep -F 'SF:lib.cppm' bazel-out/_coverage/_coverage_report.dat

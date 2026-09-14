@@ -1,0 +1,9 @@
+module(name = "demo")
+
+bazel_dep(name = "rules_cc")
+
+git_override(
+    module_name = "rules_cc",
+    remote = "https://github.com/PikachuHyA/rules_cc.git",
+    commit = "cffaa7c3aedf42af04affe1f1fbfd7161f0edb82",
+)
