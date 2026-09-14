@@ -1,0 +1,104 @@
+# CI for C++23 standard library module demos on Linux.
+name: std-module
+
+on:
+  push:
+    branches: [main, ci]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  hello_std_module_libcxx:
+    name: hello_std_module (Clang + libc++)
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: hello_std_module
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang and libc++
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libc++-dev libc++abi-dev lld
+
+      - uses: bazelbuild/setup-bazelisk@v3
+        with:
+          bazel-version: 9.2.0
+
+      - name: Build all targets
+        shell: bash
+        run: |
+          bazel build --config=libcxx //...
+
+      - name: Run demos
+        shell: bash
+        run: |
+          for target in basic:demo hello-world:hello module-library:module_library \
+                        multi_src_module:multi_src_demo template-module:example transitive:trans \
+                        std-compat:demo; do
+            bazel run --config=libcxx //$target
+          done
+
+      - name: Verify a custom standard-module target
+        shell: bash
+        run: |
+          bazel run --config=libcxx --config=custom_std_module //custom-std:demo
+
+      - name: Verify the no-detection fallback target
+        shell: bash
+        run: |
+          bazel run --config=no_std_detection //fallback:demo
+
+  hello_std_module_libstdcxx:
+    name: hello_std_module (Clang + libstdc++)
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: hello_std_module
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+
+      - name: Install latest gcc (libstdc++ std module support)
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y gcc-16 g++-16
+
+      - name: Print gcc version
+        run: |
+          gcc --version | head -1
+          gcc-16 --version | head -1
+
+      - uses: bazelbuild/setup-bazelisk@v3
+        with:
+          bazel-version: 9.2.0
+
+      - name: Build all targets
+        shell: bash
+        run: |
+          bazel build --config=libstdcxx //...
+
+      - name: Run demos
+        shell: bash
+        run: |
+          for target in basic:demo hello-world:hello module-library:module_library \
+                        multi_src_module:multi_src_demo template-module:example transitive:trans \
+                        std-compat:demo; do
+            bazel run --config=libstdcxx //$target
+          done
+
+      - name: Verify a custom standard-module target
+        shell: bash
+        run: |
+          bazel run --config=libstdcxx --config=custom_std_module //custom-std:demo
+
+      - name: Verify the no-detection fallback target
+        shell: bash
+        run: |
+          bazel run --config=no_std_detection //fallback:demo

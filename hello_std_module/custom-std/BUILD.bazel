@@ -1,0 +1,19 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+# This wrapper models a standard-module target supplied by a custom toolchain.
+# The tag prevents this target from injecting itself through std_module.
+cc_library(
+    name = "std",
+    deps = ["@local_config_cc//:std"],
+    tags = ["no_implicit_std_module"],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "demo",
+    srcs = ["main.cc"],
+    features = [
+        "cpp_modules",
+        "std_module",
+    ],
+)

@@ -1,4 +1,29 @@
 common --incompatible_strict_action_env
-build --repo_env=CC=clang++-20
+common --enable_platform_specific_config
+build:linux --repo_env=CC=clang
+build:linux --cxxopt=-std=c++23
+common:linux --copt -Xclang --copt -fmodules-embed-all-files
+
 build --features=cpp_modules
 common --experimental_cpp_modules
+build --features=std_module
+# Opt-in: @local_config_cc//:std carries the compiler's std module only when the
+# detection is requested, and its interfaces need --experimental_cpp_modules.
+common --repo_env=BAZEL_DETECT_STD_MODULE=1
+
+common:windows --features=-default_cpp_std
+common:windows --copt /utf-8
+common:windows --copt /std:c++latest
+common:windows --action_env=VSLANG=1033
+# Select the standard library that standard-module detection should use.
+build:libcxx --repo_env=BAZEL_LINKLIBS=-lc++:-lm
+build:libcxx --repo_env=BAZEL_CXXOPTS=-std=c++23:-stdlib=libc++
+build:libcxx --linkopt=-stdlib=libc++
+build:libstdcxx --repo_env=BAZEL_LINKLIBS=-lstdc++:-lm
+build:libstdcxx --repo_env=BAZEL_CXXOPTS=-std=c++23
+
+# Verify that the fallback @local_config_cc//:std target resolves without a manifest.
+build:no_std_detection --repo_env=BAZEL_DETECT_STD_MODULE=0
+
+# Route implicit standard-module dependencies through the example custom target.
+build:custom_std_module --@rules_cc//cc:std_module=//custom-std:std

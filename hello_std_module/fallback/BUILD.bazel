@@ -1,0 +1,8 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+# This target verifies that std_module still analyzes when auto-detection is off.
+cc_binary(
+    name = "demo",
+    srcs = ["main.cc"],
+    features = ["std_module"],
+)

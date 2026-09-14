@@ -11,4 +11,4 @@ coverage --experimental_generate_llvm_lcov
 coverage --repo_env=BAZEL_USE_LLVM_NATIVE_COVERAGE=1
 coverage --repo_env=BAZEL_LLVM_COV=llvm-cov
 coverage --repo_env=BAZEL_LLVM_PROFDATA=llvm-profdata
-common --copt -Xclang --copt -fmodules-embed-all-files
+common:linux --copt -Xclang --copt -fmodules-embed-all-files
