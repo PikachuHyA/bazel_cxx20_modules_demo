@@ -9,7 +9,7 @@ on:
 
 jobs:
   hello_std_module_libcxx:
-    name: hello_std_module (Clang 20 + libc++)
+    name: hello_std_module (Clang + libc++)
     runs-on: ubuntu-26.04
     defaults:
       run:
@@ -17,18 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install clang-20 and libc++
+      - name: Install Clang and libc++
         run: |
-          wget -q https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh 20
-          sudo apt-get install -y libc++-20-dev libc++abi-20-dev liblld-20-dev
-
-      - name: Make clang-20 the default tools
-        run: |
-          for tool in clang clang++ clang-scan-deps; do
-            sudo update-alternatives --install /usr/bin/$tool $tool /usr/bin/$tool-20 100
-          done
+          sudo apt-get update
+          sudo apt-get install -y clang libc++-dev libc++abi-dev lld
 
       - uses: bazelbuild/setup-bazelisk@v3
         with:
@@ -51,7 +43,7 @@ jobs:
           done
 
   hello_std_module_libstdcxx:
-    name: hello_std_module (Clang 20 + libstdc++)
+    name: hello_std_module (Clang + libstdc++)
     runs-on: ubuntu-26.04
     defaults:
       run:
@@ -59,17 +51,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install clang-20
+      - name: Install Clang
         run: |
-          wget -q https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh 20
-
-      - name: Make clang-20 the default tools
-        run: |
-          for tool in clang clang++ clang-scan-deps; do
-            sudo update-alternatives --install /usr/bin/$tool $tool /usr/bin/$tool-20 100
-          done
+          sudo apt-get update
+          sudo apt-get install -y clang
 
       - name: Install latest gcc (libstdc++ std module support)
         run: |

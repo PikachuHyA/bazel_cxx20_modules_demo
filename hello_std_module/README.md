@@ -4,72 +4,48 @@ This document shows how to use C++23 standard library modules (`import std;`) wi
 
 ## Environment
 
-- OS: Ubuntu 24.04.1 LTS
-- Compiler: Clang 19+ (for C++23 `import std;` support)
+- OS: Ubuntu 26.04 (resolute)
+- Compiler: Clang 20+ (for C++23 `import std;` support)
 - Bazel: requires a version including commit [60b1e19...](https://github.com/bazelbuild/bazel/commit/60b1e19baa4df5148bdc0a5ec8edb4cb6671fcc1) or later
 
 Verify system info:
 ```bash
-$ cat /etc/lsb-release
-DISTRIB_ID=Ubuntu
-DISTRIB_RELEASE=24.04
-DISTRIB_CODENAME=noble
-DISTRIB_DESCRIPTION="Ubuntu 24.04.1 LTS"
+$ cat /etc/os-release
+PRETTY_NAME="Ubuntu 26.04 LTS"
+VERSION_CODENAME=resolute
 ```
 
 Install dependencies:
 ```bash
-sudo apt update
-sudo apt install curl git clang-20 libc++-20-dev libc++abi-20-dev liblld-20-dev
+sudo apt-get update
+sudo apt-get install -y curl git clang libc++-dev libc++abi-dev lld
 ```
-
-Verify Clang:
-```bash
-$ clang-20 -v
-Ubuntu clang version 20.1.2 (0ubuntu1~24.04.2)
-Target: x86_64-pc-linux-gnu
-Thread model: posix
-InstalledDir: /usr/lib/llvm-20/bin
-Found candidate GCC installation: /usr/lib/gcc/x86_64-linux-gnu/13
-Selected GCC installation: /usr/lib/gcc/x86_64-linux-gnu/13
-Candidate multilib: .;@m64
-Selected multilib: .;@m64
-```
-
-## Get Bazel
-
-This feature is not yet in an official release. [bazel-9.0.0rc2](https://github.com/bazelbuild/bazel/releases/tag/9.0.0rc2) includes support for it.
-```bash
-wget -O bazel https://github.com/bazelbuild/bazel/releases/download/9.0.0rc2/bazel-9.0.0rc2-linux-x86_64
-chmod +x bazel
-```
-
-Verify Bazel:
-```bash
-$ ./bazel --version
-```
-
-Tip: switch to the official Bazel release once it contains Modules support.
-
 ## MODULE.bazel
 
-Because a specific `rules_cc` version is required, override it manually:
+Use the std module support branch of `rules_cc`:
 ```python
 module(name = "demo")
-bazel_dep(name = "rules_cc")
 
+bazel_dep(name = "rules_cc", version = "0.2.22")
 git_override(
     module_name = "rules_cc",
     remote = "https://github.com/PikachuHyA/rules_cc.git",
     branch = "support_std_module",
 )
-cc_configure = use_extension("@rules_cc//cc:extensions.bzl", "cc_configure_extension")
-use_repo(cc_configure, "local_config_cc")
 ```
 
-After that, you can use `@local_config_cc//:std_modules` as a dependency to enable standard library modules in your targets.
+Enable the feature that matches the standard-library module imported by a target:
 
-Note: remove this override once `rules_cc` is updated upstream.
+```text
+# For targets that use import std;
+build --features=std_module
+
+# For targets that use import std.compat;
+build --features=std_module_compat
+```
+
+`std_module` discovers and injects the compiler-provided `std` module. `std_module_compat` discovers and injects `std.compat`, including its dependency on `std`. Do not create, configure, or add either standard-module target to `deps` manually.
+
 
 ## Examples
 
@@ -90,7 +66,6 @@ cc_binary(
     name = "demo",
     srcs = ["main.cc"],
     features = ["cpp_modules"],
-    deps = ["@local_config_cc//:std"],
 )
 ```
 
@@ -130,7 +105,11 @@ Demonstrates modules with separate interface and implementation files.
 - `multi_src_module/speech_impl.cc`: Another module implementation
 - `multi_src_module/main.cc`: Uses speech module
 
-### 6. Module Library
+### 6. `std.compat`
+
+Shows the compatibility module without an explicit dependency. `std-compat/main.cc` imports `std.compat` and uses global C-library names such as `printf` and `strlen`; its BUILD target enables `std_module_compat`.
+
+### 7. Module Library
 
 Shows mixing modules with traditional header files.
 
@@ -143,7 +122,8 @@ Shows mixing modules with traditional header files.
 
 Build all examples:
 ```bash
-$ BAZEL_LINKOPTS=-stdlib=libc++ BAZEL_CXXOPTS=-stdlib=libc++ bazel build ... --cxxopt -std=c++23 -s --experimental_cpp_modules
+$ BAZEL_LINKLIBS=-lc++:-lm BAZEL_CXXOPTS=-std=c++23:-stdlib=libc++ \
+  bazel build //... --cxxopt=-std=c++23 --features=cpp_modules
 ```
 
 Or use the provided build script:
@@ -153,11 +133,12 @@ $ ./build.sh
 
 ## Key Points
 
-- Use `--repo_env=CC=clang-20` (or clang-19) to select a Clang version that supports C++23 standard library modules.
+- Use `--repo_env=CC=clang` to select Clang for C++23 standard library modules.
 - Add `--cxxopt=-std=c++23` to enable C++23.
-- Add `BAZEL_LINKOPTS=-stdlib=libc++` and `BAZEL_CXXOPTS=-stdlib=libc++` to use libc++ (required for std modules).
+- Set `BAZEL_LINKLIBS=-lc++:-lm` and `BAZEL_CXXOPTS=-std=c++23:-stdlib=libc++` to select libc++; omit them to use libstdc++.
 - Add `--experimental_cpp_modules` to enable C++20 Modules support in Bazel.
-- Add `@local_config_cc//:std_modules` as a dependency to targets that use `import std;`.
+- Enable `std_module` for targets that import `std`; it selects and injects the `std` module.
+- Enable `std_module_compat` for targets that import `std.compat`; it selects and injects `std.compat`, which includes `std`.
 - Add `cpp_modules` to the `features` list in BUILD targets.
 - Use `module_interfaces` attribute for module interface files (`.cppm`).
 
