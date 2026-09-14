@@ -1,0 +1,8 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+
+cc_library(
+  name = "foobar",
+  module_interfaces = ["foo.cppm", "bar.cppm"],
+  features = ["cpp_modules"],
+)

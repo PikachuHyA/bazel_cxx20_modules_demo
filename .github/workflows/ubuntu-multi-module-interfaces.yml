@@ -1,0 +1,49 @@
+name: Multi module interfaces repro (Ubuntu 26.04)
+
+on:
+  push:
+    branches: [main, ci]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+        working-directory: hello_multi_module_interfaces
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up matching clang-scan-deps
+        run: |
+          clang_major=$(clang -dumpversion | cut -d. -f1)
+          scanner=/usr/lib/llvm-${clang_major}/bin/clang-scan-deps
+          if [[ ! -x "$scanner" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y "clang-${clang_major}" "clang-tools-${clang_major}"
+          fi
+          test -x "$scanner"
+          # Bazel looks next to /usr/bin/clang for the unversioned scanner.
+          sudo ln -sfn "$scanner" /usr/bin/clang-scan-deps
+          clang --version
+          /usr/bin/clang-scan-deps --version
+
+      # Use Bazelisk from the runner image and the demo Bazel configuration.
+      - name: Show Bazelisk version
+        run: bazelisk --version
+
+      - name: Build before switching imports
+        run: bazelisk build //:all
+
+      - name: Switch foo and bar import direction
+        run: python3 toggle_imports.py
+
+      # Keep the same Bazel server and output base to exercise incremental invalidation.
+      - name: Build after switching imports
+        run: bazelisk build //:all
