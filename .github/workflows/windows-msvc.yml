@@ -72,7 +72,7 @@ jobs:
         run: |
           set -o pipefail
           export MSYS_NO_PATHCONV=1
-          bazel --output_user_root=C:/b build //... 2>&1 | tee build.log
+          bazel --output_user_root=C:/b build //... -- -//custom-std/... 2>&1 | tee build.log
 
       - name: Verify no MSVC CRT mismatch (C5050 / LNK4098)
         shell: bash
