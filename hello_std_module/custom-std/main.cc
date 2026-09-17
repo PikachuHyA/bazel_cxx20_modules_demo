@@ -1,5 +1,5 @@
-import std;
+import my_std;
 
 int main() {
-    std::println("custom std_module target works");
+    return my_std_value() == 42 ? 0 : 1;
 }

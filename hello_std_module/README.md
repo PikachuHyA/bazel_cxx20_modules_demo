@@ -42,8 +42,9 @@ No standard-module dependency needs to be listed manually.
 - `hello-world`, `transitive`, `template-module`, and `multi_src_module`:
   module interfaces, transitive imports, templates, and implementation units.
 - `module-library`: C++ modules together with traditional headers and sources.
-- `custom-std`: overrides `@rules_cc//cc:std_module` with a custom target. The
-  custom target uses `no_implicit_std_module` to prevent a dependency cycle.
+- `custom-std`: overrides `@rules_cc//cc:std_module` with an independent
+  `my_std` module. It does not depend on `@local_config_cc`; the
+  `no_implicit_std_module` tag prevents a dependency cycle.
 - `fallback`: ordinary C++ code that verifies the empty `:std` fallback target
   when automatic detection is disabled. It deliberately does not import `std`.
 

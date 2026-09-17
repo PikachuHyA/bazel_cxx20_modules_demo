@@ -43,7 +43,7 @@ jobs:
       - name: Verify a custom standard-module target
         shell: bash
         run: |
-          bazel run --config=libcxx --config=custom_std_module //custom-std:demo
+          bazel run --config=no_std_detection --config=custom_std_module //custom-std:demo
 
       - name: Verify the no-detection fallback target
         shell: bash
@@ -96,7 +96,7 @@ jobs:
       - name: Verify a custom standard-module target
         shell: bash
         run: |
-          bazel run --config=libstdcxx --config=custom_std_module //custom-std:demo
+          bazel run --config=no_std_detection --config=custom_std_module //custom-std:demo
 
       - name: Verify the no-detection fallback target
         shell: bash

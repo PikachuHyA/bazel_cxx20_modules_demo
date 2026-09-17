@@ -64,31 +64,15 @@ jobs:
         with:
           bazel-version: 9.2.0
 
-      # C:/b keeps the bazel output base on a short path, avoiding MSVC
-      # long-path (MAX_PATH) issues with the module repo names in the execroot.
-      #
-      # One --features flag per feature: --features=a,b is kept as the single
-      # literal string "a,b" and silently enables nothing.
-      # -default_cpp_std drops the toolchain's hardcoded /std:c++17 so it
-      # cannot clash with /std:c++latest, which also has to reach the std
-      # module interface: that one is compiled as @local_config_cc//:std, where
-      # a target's copts has no effect.
-      # MSYS_NO_PATHCONV keeps Git Bash from rewriting //pkg:target arguments
-      # into /pkg:target.
+      # C:/b keeps the Bazel output base short. The hello_std_module/.bazelrc
+      # supplies the Windows module features and MSVC compiler options.
+      # MSYS_NO_PATHCONV keeps Git Bash from rewriting //pkg:target arguments.
       - name: Build all targets
         shell: bash
         run: |
           set -o pipefail
           export MSYS_NO_PATHCONV=1
-          bazel --output_user_root=C:/b build //... \
-            --experimental_cpp_modules \
-            --features=cpp_modules \
-            --features=std_module \
-            --repo_env=BAZEL_DETECT_STD_MODULE=1 \
-            --features=-default_cpp_std \
-            --copt /std:c++latest \
-            --copt /utf-8 \
-            2>&1 | tee build.log
+          bazel --output_user_root=C:/b build //... 2>&1 | tee build.log
 
       - name: Verify no MSVC CRT mismatch (C5050 / LNK4098)
         shell: bash
@@ -111,25 +95,13 @@ jobs:
               template-module:example \
               transitive:trans \
               std-compat:demo; do
-            bazel --output_user_root=C:/b run "//$target" \
-              --experimental_cpp_modules \
-              --features=cpp_modules \
-              --features=std_module \
-              --repo_env=BAZEL_DETECT_STD_MODULE=1 \
-              --features=-default_cpp_std \
-              --copt /std:c++latest \
-              --copt /utf-8
+            bazel --output_user_root=C:/b run "//$target"
           done
 
-          bazel --output_user_root=C:/b run //custom-std:demo \
-            --experimental_cpp_modules \
-            --features=cpp_modules \
-            --features=std_module \
-            --repo_env=BAZEL_DETECT_STD_MODULE=1 \
-            --features=-default_cpp_std \
-            --copt /std:c++latest \
-            --copt /utf-8 \
-            --@rules_cc//cc:std_module=//custom-std:std
+          bazel --output_user_root=C:/b run \
+            --config=no_std_detection \
+            --config=custom_std_module \
+            //custom-std:demo
 
   hello_fmt:
     name: hello_fmt (MSVC)
