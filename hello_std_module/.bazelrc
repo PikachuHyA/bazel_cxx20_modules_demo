@@ -30,4 +30,4 @@ build:libstdcxx --repo_env=BAZEL_CXXOPTS=-std=c++23
 build:no_std_detection --repo_env=BAZEL_DETECT_STD_MODULE=0
 
 # Route implicit standard-module dependencies through the example custom target.
-build:custom_std_module --@rules_cc//cc:std_module=//custom-std:std
+build:custom_std_module --extra_toolchains=//custom-std:my_std_module_toolchain

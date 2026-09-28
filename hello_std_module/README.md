@@ -30,9 +30,15 @@ git_override(
 ```
 
 The repository enables `cpp_modules`, `std_module`, and standard-module
-detection in `.bazelrc`. `std_module` injects `@local_config_cc//:std` into
-`cc_library` and `cc_binary`; that target supplies both `std` and `std.compat`.
-No standard-module dependency needs to be listed manually.
+detection in `.bazelrc`. With `std_module` enabled, C++ rules obtain the
+standard module from the selected standard-module companion toolchain. The
+auto-configured companion supplies `@local_config_cc//:std`, which contains
+both `std` and `std.compat`. No standard-module dependency needs to be
+listed manually. To supply a different standard module, register another
+companion toolchain for `@rules_cc//cc/toolchains:std_module_toolchain_type`,
+as `custom-std` does. The `cc_std_module_library` target the toolchain points
+at must carry the `no_implicit_std_module` tag so it does not pick up a
+standard module from the toolchain that points back at it.
 
 ## Examples
 
@@ -42,30 +48,34 @@ No standard-module dependency needs to be listed manually.
 - `hello-world`, `transitive`, `template-module`, and `multi_src_module`:
   module interfaces, transitive imports, templates, and implementation units.
 - `module-library`: C++ modules together with traditional headers and sources.
-- `custom-std`: overrides `@rules_cc//cc:std_module` with an independent
-  `my_std` module. It does not depend on `@local_config_cc`; the
-  `no_implicit_std_module` tag prevents a dependency cycle.
+- `custom-std`: registers a companion toolchain that supplies an independent
+  `my_std` module. Its bootstrap `cc_std_module_library` carries the
+  `no_implicit_std_module` tag, so it does not depend on
+  `@local_config_cc//:std`; the example covers `cc_library`, `cc_binary`, and
+  `cc_test`.
 - `fallback`: ordinary C++ code that verifies the empty `:std` fallback target
   when automatic detection is disabled. It deliberately does not import `std`.
 
 ## Build
 
-Build every example against libc++:
+Build the automatically detected examples against libc++:
 
 ```sh
-bazel build --config=libcxx //...
+bazel build --config=libcxx //... -- -//custom-std/...
 ```
 
 Build against libstdc++ when the compiler provides `libstdc++.modules.json`:
 
 ```sh
-bazel build --config=libstdcxx //...
+bazel build --config=libstdcxx //... -- -//custom-std/...
 ```
 
-Verify a custom standard-module target:
+Verify the custom standard-module companion toolchain:
 
 ```sh
-bazel build --config=libcxx --config=custom_std_module //custom-std:demo
+bazel build --config=no_std_detection --config=custom_std_module //custom-std:all
+bazel test --config=no_std_detection --config=custom_std_module //custom-std:std_module_test
+bazel run --config=no_std_detection --config=custom_std_module //custom-std:demo
 ```
 
 Verify the no-manifest fallback target:

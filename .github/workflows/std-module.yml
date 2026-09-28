@@ -29,7 +29,7 @@ jobs:
       - name: Build all targets
         shell: bash
         run: |
-          bazel build --config=libcxx //... --config=clang -- -//custom-std/...
+          bazel build --config=libcxx --config=clang //... -- -//custom-std/...
 
       - name: Run demos
         shell: bash
@@ -40,9 +40,11 @@ jobs:
             bazel run --config=libcxx --config=clang //$target
           done
 
-      - name: Verify a custom standard-module target
+      - name: Verify a custom standard-module companion toolchain
         shell: bash
         run: |
+          bazel build --config=clang --config=no_std_detection --config=custom_std_module //custom-std:all
+          bazel test --config=clang --config=no_std_detection --config=custom_std_module //custom-std:std_module_test
           bazel run --config=clang --config=no_std_detection --config=custom_std_module //custom-std:demo
 
       - name: Verify the no-detection fallback target
@@ -93,9 +95,11 @@ jobs:
             bazel run --config=libstdcxx --config=clang //$target
           done
 
-      - name: Verify a custom standard-module target
+      - name: Verify a custom standard-module companion toolchain
         shell: bash
         run: |
+          bazel build --config=clang --config=no_std_detection --config=custom_std_module //custom-std:all
+          bazel test --config=clang --config=no_std_detection --config=custom_std_module //custom-std:std_module_test
           bazel run --config=clang --config=no_std_detection --config=custom_std_module //custom-std:demo
 
       - name: Verify the no-detection fallback target

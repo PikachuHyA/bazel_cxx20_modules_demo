@@ -1,13 +1,48 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load(
+    "@rules_cc//cc:defs.bzl",
+    "cc_binary",
+    "cc_library",
+    "cc_std_module_library",
+    "cc_test",
+    "std_module_toolchain",
+)
 
-# A module target supplied by a custom toolchain or project. The tag prevents
-# std_module from injecting this target into itself.
-cc_library(
+# This bootstrap rule does not request the standard-module companion toolchain,
+# so the toolchain below can safely point back to this target. The tag below is
+# what keeps it from picking up the std module from that toolchain; every
+# cc_std_module_library target must carry it.
+cc_std_module_library(
     name = "std",
-    module_interfaces = ["my_std.cppm"],
     features = ["cpp_modules"],
+    module_interfaces = ["my_std.cppm"],
     tags = ["no_implicit_std_module"],
     visibility = ["//visibility:public"],
+)
+
+std_module_toolchain(
+    name = "my_std_module",
+    std_module = ":std",
+)
+
+toolchain(
+    name = "my_std_module_toolchain",
+    toolchain = ":my_std_module",
+    toolchain_type = "@rules_cc//cc/toolchains:std_module_toolchain_type",
+)
+
+cc_library(
+    name = "consumer",
+    srcs = ["library.cc"],
+    features = ["cpp_modules"],
+)
+
+cc_test(
+    name = "std_module_test",
+    srcs = ["test.cc"],
+    features = [
+        "cpp_modules",
+        "std_module",
+    ],
 )
 
 cc_binary(

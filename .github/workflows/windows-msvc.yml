@@ -98,6 +98,14 @@ jobs:
             bazel --output_user_root=C:/b run "//$target"
           done
 
+          bazel --output_user_root=C:/b build \
+            --config=no_std_detection \
+            --config=custom_std_module \
+            //custom-std:all
+          bazel --output_user_root=C:/b test \
+            --config=no_std_detection \
+            --config=custom_std_module \
+            //custom-std:std_module_test
           bazel --output_user_root=C:/b run \
             --config=no_std_detection \
             --config=custom_std_module \
