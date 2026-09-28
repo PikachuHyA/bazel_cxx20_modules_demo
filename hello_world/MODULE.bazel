@@ -1,14 +1,4 @@
 module(name = "demo")
 
-bazel_dep(name = "rules_cc", version = "0.2.22")
+bazel_dep(name = "rules_cc", version = "0.2.25")
 
-git_override(
-    module_name = "rules_cc",
-    remote = "https://github.com/PikachuHyA/rules_cc.git",
-    commit = "9cef3738f2deb31aa1bbc4840d2554e01b7d84d2"
-)
-
-#local_path_override(
-#    module_name = "rules_cc",
-#    path = "D:\\code\\module_demo\\rules_cc",
-#)

@@ -1,8 +1,12 @@
 common --incompatible_strict_action_env
 common --enable_platform_specific_config
-build:linux --repo_env=CC=clang
-build:linux --cxxopt=-std=c++23
-common:linux --copt -Xclang --copt -fmodules-embed-all-files
+common:linux --cxxopt=-std=c++23
+
+common:clang --repo_env=CC=clang
+common:clang --copt -Xclang --copt -fmodules-embed-all-files
+common:gcc --cxxopt -fmodules
+common:gcc --cxxopt -Mno-modules
+
 
 build --features=cpp_modules
 common --experimental_cpp_modules
