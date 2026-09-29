@@ -1,3 +1,5 @@
+English | [简体中文](README.zh-CN.md)
+
 # Bazel with C++20 Modules: Hello World
 
 This document shows how to build a simple C++20 Modules project with open-source Bazel, using either Clang or GCC.
